@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Parameters for the Problem
-N = 4  # Number of cities
+N = 8  # Number of cities
 eta = 0.01  # Learning rate
 time_steps = 100 # Number of iterations
 
