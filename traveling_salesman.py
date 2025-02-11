@@ -19,7 +19,8 @@ def distance_matrix(N):
     return dist_matrix, cities
 
 def energy(V, D):
-    term1 = np.sum((np.sum(V, axis=1) - 1) ** 2) # Each city appears exactly once in the tour
+    term1 = np.sum((np.sum(V, axis=1) - 1) ** 2)
+    term2 = np.sum((np.sum(V, axis=0) - 1) ** 2)
     term3 = np.sum(D * np.roll(V, shift=-1, axis=1)) # TSP cost - ensuring shorter tours
     return term1 + term2 + term3
 
