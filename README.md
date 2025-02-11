@@ -1,4 +1,4 @@
-# TravelingSalesman
+# Traveling Salesman
 Author - Lucas Casaril - eng@lucascasaril.me
 
 More information on this project - https://lucascasaril.me/traveling_salesman
