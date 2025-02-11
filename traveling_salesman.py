@@ -1,46 +1,61 @@
+"""
+Author: Lucas Casaril
+Contact: eng@lucascasaril.me
+Updated: 11/Feb/2025
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
 
-# Parameters
-N = 5  # Number of cities
+# Parameters for the Problem
+N = 4  # Number of cities
 eta = 0.01  # Learning rate
-time_steps = 1000  # Number of iterations
+time_steps = 100 # Number of iterations
 
 def distance_matrix(N):
-    """Generate a random distance matrix for N cities."""
-    cities = np.random.rand(N, 2)  # Random coordinates for cities
+    # Generating a random cities and calculating the distance matrix
+    cities = np.random.rand(N, 2)
     dist_matrix = np.sqrt(((cities[:, None] - cities[None, :]) ** 2).sum(axis=2))
     return dist_matrix, cities
 
 def energy(V, D):
-    """Compute the energy function of the network."""
-    term1 = torch.sum((torch.sum(V, dim=1) - 1) ** 2)
-    term2 = torch.sum((torch.sum(V, dim=0) - 1) ** 2)
-    term3 = torch.sum(D * torch.roll(V, shifts=-1, dims=1))
+    term1 = np.sum((np.sum(V, axis=1) - 1) ** 2) # Each city appears exactly once in the tour
+    term2 = np.sum((np.sum(V, axis=0) - 1) ** 2) # Each tour position contains exactly one city
+    term3 = np.sum(D * np.roll(V, shift=-1, axis=1)) # TSP cost - ensuring shorter tours
     return term1 + term2 + term3
 
-def hopfield_tsp(D, N, time_steps=1000, eta=0.01):
-    """Solve TSP using a Hopfield Neural Network in PyTorch."""
-    V = torch.rand(N, N, requires_grad=True)  # Random initial state
-    optimizer = torch.optim.Adam([V], lr=eta)
+def hopfield_tsp(D, N, time_steps, eta, system_energy):
+    V = np.random.rand(N, N)  # Random initial state
     
     for _ in range(time_steps):
-        optimizer.zero_grad()
-        loss = energy(V, torch.tensor(D))
-        loss.backward()
-        optimizer.step()
-        V.data = F.softmax(V, dim=1)  # Normalize using softmax
+        # Calculate energy for the step
+        loss = energy(V, D)
+        system_energy.append(loss.item())
+        
+        # Gradients
+        grad = np.zeros_like(V)
+        epsilon = 1e-4  # Finite differences
+
+        for i in range(N):
+            for j in range(N):
+
+                V_perturbed = V.copy()
+                V_perturbed[i, j] += epsilon
+                grad[i, j] = (energy(V_perturbed, D) - loss) / epsilon
+        
+        # Gradient descent
+        V -= eta * grad
+        
+        # Normalizing
+        V = np.exp(V) / np.sum(np.exp(V), axis=1, keepdims=True)
     
-    return torch.argmax(V, dim=1).detach().numpy()
+    return np.argmax(V, axis=1)
 
 def plot_tsp_solution(route, cities):
-    """Plot the TSP route with arrows indicating travel direction at the midpoint."""
     ordered_cities = cities[route]
-    ordered_cities = np.vstack([ordered_cities, ordered_cities[0]])  # Complete the cycle
+    ordered_cities = np.vstack([ordered_cities, ordered_cities[0]])
     
-    plt.figure(figsize=(8, 6))
+    plt.figure()
     plt.plot(ordered_cities[:, 0], ordered_cities[:, 1], 'o-', markersize=8, label='Route', color='black')
     
     for i in range(len(ordered_cities) - 1):
@@ -64,7 +79,9 @@ def plot_tsp_solution(route, cities):
     plt.legend()
     plt.show()
 
-# Run TSP Solver
+# Main Code
 dist_matrix, cities = distance_matrix(N)
-route = hopfield_tsp(dist_matrix, N, time_steps, eta)
+system_energy = []
+route = hopfield_tsp(dist_matrix, N, time_steps, eta, system_energy)
+print(system_energy)
 plot_tsp_solution(route, cities)
